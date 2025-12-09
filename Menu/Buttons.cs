@@ -58,7 +58,8 @@ namespace StupidTemplate.Menu
             new ButtonInfo[] { // Movement Mods [5]
                 new ButtonInfo { buttonText = "Return to Main", method =() => currentCategory = 0, isTogglable = false, toolTip = "Returns to the main page of the menu."},
 
-                new ButtonInfo { buttonText = "Platforms", method =() => Movement.Platforms(), toolTip = "Spawns platforms on your hands when pressing grip."},
+                new ButtonInfo { buttonText = "Platforms", method =() => Movement.Platforms(), toolTip = "Spawns dual platforms on each hand when pressing grip."},
+                new ButtonInfo { buttonText = "Speedster", method =() => Movement.Speedster(), toolTip = "Gives you a small speed boost while moving."},
                 new ButtonInfo { buttonText = "Fly", method =() => Movement.Fly(), toolTip = "Sends you forward when holding A."},
                 new ButtonInfo { buttonText = "Teleport Gun", method =() => Movement.TeleportGun(), toolTip = "Teleports you to wherever your pointer is when pressing trigger."},
             },
