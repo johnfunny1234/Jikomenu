@@ -62,6 +62,7 @@ namespace StupidTemplate.Menu
                 new ButtonInfo { buttonText = "Speedster", method =() => Movement.Speedster(), toolTip = "Gives you a small speed boost while moving."},
                 new ButtonInfo { buttonText = "Fly", method =() => Movement.Fly(), toolTip = "For private use only: fly where your head is pointing while holding A."},
                 new ButtonInfo { buttonText = "Teleport Gun", method =() => Movement.TeleportGun(), toolTip = "Teleports you to wherever your pointer is when pressing trigger."},
+                new ButtonInfo { buttonText = "Tag Gun", method =() => Movement.TagGun(), toolTip = "For private use only: tag the GorillaRig you point at when pulling trigger while gripping."},
             },
 
             new ButtonInfo[] { // Safety Mods [6]

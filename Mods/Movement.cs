@@ -1,4 +1,8 @@
-﻿using GorillaLocomotion;
+using System;
+using GorillaLocomotion;
+using HarmonyLib;
+using Photon.Pun;
+using Photon.Realtime;
 using StupidTemplate.Classes;
 using UnityEngine;
 using UnityEngine.XR;
@@ -83,6 +87,28 @@ namespace StupidTemplate.Mods
                 }
 
                 previousTeleportTrigger = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
+            }
+        }
+
+        public static bool previousTagTrigger;
+        public static void TagGun()
+        {
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                var gunData = RenderGun();
+                VRRig targetRig = gunData.Ray.collider ? gunData.Ray.collider.GetComponentInParent<VRRig>() : null;
+
+                bool triggerPressed = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
+                if (triggerPressed && !previousTagTrigger && targetRig != null && targetRig != VRRig.LocalRig)
+                {
+                    TryTagRig(targetRig);
+                }
+
+                previousTagTrigger = triggerPressed;
+            }
+            else
+            {
+                previousTagTrigger = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
             }
         }
 
@@ -190,6 +216,37 @@ namespace StupidTemplate.Mods
             colorChanger.colors = StupidTemplate.Settings.backgroundColor;
 
             return platform;
+        }
+
+        private static void TryTagRig(VRRig targetRig)
+        {
+            try
+            {
+                Player targetPlayer = RigManager.GetPlayerFromVRRig(targetRig);
+                GorillaGameManager gameManager = GorillaGameManager.instance;
+
+                if (gameManager != null && targetPlayer != null)
+                {
+                    var tagMethod = AccessTools.Method(gameManager.GetType(), "TagPlayer");
+                    if (tagMethod != null)
+                    {
+                        tagMethod.Invoke(gameManager, new object[] { targetPlayer, PhotonNetwork.LocalPlayer });
+                        return;
+                    }
+                }
+
+                PhotonView targetView = RigManager.GetPhotonViewFromVRRig(targetRig);
+                PhotonView selfView = GorillaTagger.Instance?.photonView;
+
+                if (targetView != null && selfView != null)
+                {
+                    selfView.RPC("ReportTag", RpcTarget.MasterClient, targetView.ViewID);
+                }
+            }
+            catch (Exception exc)
+            {
+                Debug.LogError($"{PluginInfo.Name} // Error while trying to tag with Tag Gun: {exc.Message}");
+            }
         }
     }
 }
