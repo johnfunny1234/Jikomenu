@@ -60,7 +60,7 @@ namespace StupidTemplate.Menu
 
                 new ButtonInfo { buttonText = "Platforms", method =() => Movement.Platforms(), toolTip = "Spawns dual platforms on each hand when pressing grip."},
                 new ButtonInfo { buttonText = "Speedster", method =() => Movement.Speedster(), toolTip = "Gives you a small speed boost while moving."},
-                new ButtonInfo { buttonText = "Fly", method =() => Movement.Fly(), toolTip = "Sends you forward when holding A."},
+                new ButtonInfo { buttonText = "Fly", method =() => Movement.Fly(), toolTip = "For private use only: fly where your head is pointing while holding A."},
                 new ButtonInfo { buttonText = "Teleport Gun", method =() => Movement.TeleportGun(), toolTip = "Teleports you to wherever your pointer is when pressing trigger."},
             },
 
