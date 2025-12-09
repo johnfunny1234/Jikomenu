@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFramework>netstandard2.1</TargetFramework>
+          <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Jikomenuv1</AssemblyName>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <PropertyGroup>

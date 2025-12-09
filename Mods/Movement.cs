@@ -1,4 +1,8 @@
-﻿using GorillaLocomotion;
+using System;
+using GorillaLocomotion;
+using HarmonyLib;
+using Photon.Pun;
+using Photon.Realtime;
 using StupidTemplate.Classes;
 using UnityEngine;
 using UnityEngine.XR;
@@ -17,58 +21,55 @@ namespace StupidTemplate.Mods
             }
         }
 
-        public static GameObject platl;
-        public static GameObject platr;
+        public static GameObject leftPlatformTop;
+        public static GameObject leftPlatformBottom;
+        public static GameObject rightPlatformTop;
+        public static GameObject rightPlatformBottom;
+
+        public static bool previousLeftGrab;
+        public static bool previousRightGrab;
 
         public static void Platforms()
         {
-            if (ControllerInputPoller.instance.leftGrab)
+            bool leftGrab = ControllerInputPoller.instance.leftGrab;
+            bool rightGrab = ControllerInputPoller.instance.rightGrab;
+
+            if (leftGrab && !previousLeftGrab)
             {
-                if (platl == null)
+                if (leftPlatformTop == null && leftPlatformBottom == null)
                 {
-                    platl = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    platl.transform.localScale = new Vector3(0.025f, 0.3f, 0.4f);
-                    platl.transform.position = TrueLeftHand().position;
-                    platl.transform.rotation = TrueLeftHand().rotation;
-
-                    FixStickyColliders(platl);
-
-                    ColorChanger colorChanger = platl.AddComponent<ColorChanger>();
-                    colorChanger.colors = StupidTemplate.Settings.backgroundColor;
+                    SpawnPlatformPair(true);
                 }
                 else
                 {
-                    if (platl != null)
-                    {
-                        Object.Destroy(platl);
-                        platl = null;
-                    }
+                    DestroyPlatformPair(true);
                 }
             }
 
-            if (ControllerInputPoller.instance.rightGrab)
+            if (rightGrab && !previousRightGrab)
             {
-                if (platr == null)
+                if (rightPlatformTop == null && rightPlatformBottom == null)
                 {
-                    platr = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    platr.transform.localScale = new Vector3(0.025f, 0.3f, 0.4f);
-                    platr.transform.position = TrueRightHand().position;
-                    platr.transform.rotation = TrueRightHand().rotation;
-
-                    FixStickyColliders(platr);
-
-                    ColorChanger colorChanger = platr.AddComponent<ColorChanger>();
-                    colorChanger.colors = StupidTemplate.Settings.backgroundColor;
+                    SpawnPlatformPair(false);
                 }
                 else
                 {
-                    if (platr != null)
-                    {
-                        Object.Destroy(platr);
-                        platr = null;
-                    }
+                    DestroyPlatformPair(false);
                 }
             }
+
+            if (leftPlatformTop != null || leftPlatformBottom != null)
+            {
+                UpdatePlatformPairPositions(true);
+            }
+
+            if (rightPlatformTop != null || rightPlatformBottom != null)
+            {
+                UpdatePlatformPairPositions(false);
+            }
+
+            previousLeftGrab = leftGrab;
+            previousRightGrab = rightGrab;
         }
 
         public static bool previousTeleportTrigger;
@@ -86,6 +87,165 @@ namespace StupidTemplate.Mods
                 }
 
                 previousTeleportTrigger = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
+            }
+        }
+
+        public static bool previousTagTrigger;
+        public static void TagGun()
+        {
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                var gunData = RenderGun();
+                VRRig targetRig = gunData.Ray.collider ? gunData.Ray.collider.GetComponentInParent<VRRig>() : null;
+
+                bool triggerPressed = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
+                if (triggerPressed && !previousTagTrigger && targetRig != null && targetRig != VRRig.LocalRig)
+                {
+                    TryTagRig(targetRig);
+                }
+
+                previousTagTrigger = triggerPressed;
+            }
+            else
+            {
+                previousTagTrigger = ControllerInputPoller.TriggerFloat(XRNode.RightHand) > 0.5f;
+            }
+        }
+
+        public static void Speedster()
+        {
+            Rigidbody playerBody = GorillaTagger.Instance.rigidbody;
+            if (playerBody == null)
+            {
+                return;
+            }
+
+            Vector3 velocity = playerBody.velocity;
+            if (velocity.sqrMagnitude < 0.01f)
+            {
+                return;
+            }
+
+            const float boostMultiplier = 1.15f;
+            const float maxSpeed = 12f;
+
+            Vector3 boostedVelocity = velocity * boostMultiplier;
+            if (boostedVelocity.magnitude > maxSpeed)
+            {
+                boostedVelocity = boostedVelocity.normalized * maxSpeed;
+            }
+
+            playerBody.velocity = Vector3.Lerp(velocity, boostedVelocity, Time.deltaTime * 5f);
+        }
+
+        private static void SpawnPlatformPair(bool left)
+        {
+            var (position, rotation, up, _, right) = left ? TrueLeftHand() : TrueRightHand();
+            Vector3 offset = up * 0.07f + right * 0.01f;
+
+            GameObject topPlatform = CreatePlatform(position + offset, rotation);
+            GameObject bottomPlatform = CreatePlatform(position - offset, rotation);
+
+            if (left)
+            {
+                leftPlatformTop = topPlatform;
+                leftPlatformBottom = bottomPlatform;
+            }
+            else
+            {
+                rightPlatformTop = topPlatform;
+                rightPlatformBottom = bottomPlatform;
+            }
+        }
+
+        private static void DestroyPlatformPair(bool left)
+        {
+            GameObject topPlatform = left ? leftPlatformTop : rightPlatformTop;
+            GameObject bottomPlatform = left ? leftPlatformBottom : rightPlatformBottom;
+
+            if (topPlatform != null)
+            {
+                Object.Destroy(topPlatform);
+            }
+
+            if (bottomPlatform != null)
+            {
+                Object.Destroy(bottomPlatform);
+            }
+
+            if (left)
+            {
+                leftPlatformTop = null;
+                leftPlatformBottom = null;
+            }
+            else
+            {
+                rightPlatformTop = null;
+                rightPlatformBottom = null;
+            }
+        }
+
+        private static void UpdatePlatformPairPositions(bool left)
+        {
+            var (position, rotation, up, _, right) = left ? TrueLeftHand() : TrueRightHand();
+            Vector3 offset = up * 0.07f + right * 0.01f;
+
+            GameObject topPlatform = left ? leftPlatformTop : rightPlatformTop;
+            GameObject bottomPlatform = left ? leftPlatformBottom : rightPlatformBottom;
+
+            if (topPlatform != null)
+            {
+                topPlatform.transform.SetPositionAndRotation(position + offset, rotation);
+            }
+
+            if (bottomPlatform != null)
+            {
+                bottomPlatform.transform.SetPositionAndRotation(position - offset, rotation);
+            }
+        }
+
+        private static GameObject CreatePlatform(Vector3 position, Quaternion rotation)
+        {
+            GameObject platform = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            platform.transform.localScale = new Vector3(0.025f, 0.3f, 0.4f);
+            platform.transform.SetPositionAndRotation(position, rotation);
+
+            FixStickyColliders(platform);
+
+            ColorChanger colorChanger = platform.AddComponent<ColorChanger>();
+            colorChanger.colors = StupidTemplate.Settings.backgroundColor;
+
+            return platform;
+        }
+
+        private static void TryTagRig(VRRig targetRig)
+        {
+            try
+            {
+                Player targetPlayer = RigManager.GetPlayerFromVRRig(targetRig);
+                GorillaGameManager gameManager = GorillaGameManager.instance;
+
+                if (gameManager != null && targetPlayer != null)
+                {
+                    var tagMethod = AccessTools.Method(gameManager.GetType(), "TagPlayer");
+                    if (tagMethod != null)
+                    {
+                        tagMethod.Invoke(gameManager, new object[] { targetPlayer, PhotonNetwork.LocalPlayer });
+                        return;
+                    }
+                }
+
+                PhotonView targetView = RigManager.GetPhotonViewFromVRRig(targetRig);
+                PhotonView selfView = GorillaTagger.Instance?.photonView;
+
+                if (targetView != null && selfView != null)
+                {
+                    selfView.RPC("ReportTag", RpcTarget.MasterClient, targetView.ViewID);
+                }
+            }
+            catch (Exception exc)
+            {
+                Debug.LogError($"{PluginInfo.Name} // Error while trying to tag with Tag Gun: {exc.Message}");
             }
         }
     }
