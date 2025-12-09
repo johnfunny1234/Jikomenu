@@ -17,4 +17,4 @@ No, this template is free and public for anyone to use. You are welcome to utili
 
 ## Building the pre-named DLL
 
-- Run `./scripts/build_dll.sh` to build and copy the plugin as `dist/Jikomenuv1.dll`.
+- Run `./scripts/build_dll.sh` to build and copy the plugin as `dist/Jikomenuv1.dll`. Set `GAME_PATH="<Gorilla Tag install>"` when invoking the script if your game path differs from `Directory.Build.props`.

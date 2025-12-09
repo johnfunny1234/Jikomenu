@@ -5,17 +5,24 @@ set -euo pipefail
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out_dir="$root_dir/dist"
 
-mkdir -p "$out_dir"
-
-dotnet build "$root_dir/StupidTemplate.csproj" -c Release
-
-# Copy the compiled plugin to a predictable location and name.
-# The project AssemblyName controls the produced DLL name.
-built_dll=$(find "$root_dir/bin/Release" -maxdepth 3 -name 'Jikomenuv1.dll' | head -n 1)
-if [[ -z "$built_dll" ]]; then
-  echo "Jikomenuv1.dll not found after build. Check build output above." >&2
+if ! command -v dotnet >/dev/null 2>&1; then
+  echo "dotnet CLI is not installed or not on PATH. Please install it and retry." >&2
   exit 1
 fi
 
-cp "$built_dll" "$out_dir/Jikomenuv1.dll"
-echo "Copied plugin to $out_dir/Jikomenuv1.dll"
+mkdir -p "$out_dir"
+
+build_args=("$root_dir/StupidTemplate.csproj" -c Release "/p:OutputPath=$out_dir/")
+if [[ -n "${GAME_PATH:-}" ]]; then
+  build_args+=("/p:GamePath=$GAME_PATH")
+fi
+
+dotnet build "${build_args[@]}"
+
+built_dll="$out_dir/Jikomenuv1.dll"
+if [[ ! -f "$built_dll" ]]; then
+  echo "Jikomenuv1.dll not found in $out_dir after build. Check build output above." >&2
+  exit 1
+fi
+
+echo "Built plugin at $built_dll"
